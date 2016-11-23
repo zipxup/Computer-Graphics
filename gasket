@@ -1,0 +1,105 @@
+//Huiwen Luo
+
+#include<gl\glut.h>
+#include<stdlib.h>
+#include<math.h>
+
+
+GLfloat v[3][2] = { { -1.0, -1.0 }, { 1.0, -1.0 }, { 0.0, 1.5 } };   //定义了一个二维数组v，来表示三角形三个顶点的坐标
+
+int n;
+
+void triangle(GLfloat *a, GLfloat *b, GLfloat *c)
+
+/* specify one triangle */
+{
+	//为三角形的顶点随机分配不同的颜色
+	GLfloat x, y, z;
+	x = (rand() % 100)*0.01f;
+	y = (rand() % 100)*0.01f;
+	z = (rand() % 100)*0.01f;
+	glColor3f(x, y, z);
+	glBegin(GL_LINE_LOOP);
+	glVertex2fv(a);    //画三角形的三个顶点
+	glVertex2fv(b);
+	glVertex2fv(c);
+	glEnd();
+}
+
+void divide_triangle( GLfloat *a,GLfloat *b,GLfloat *c,int m)   //递归函数
+{
+
+	/* triangle subdivision using vertex numbers */
+
+	GLfloat  p0[2],p1[2], p2[2];
+	int j=0;
+	triangle(a, b, c);//调用triangle函数来画一个三角形的三个顶点
+	if(m> 0){ /* draw triangle at end of recursion */ 
+		p0[0] = (a[0] + b[0]) / 2;
+		p0[1] = (a[1] + b[1]) / 2;
+
+		p1[0] = (b[0] + c[0]) / 2;
+		p1[1] = (b[1] + c[1]) / 2;
+
+		p2[0] = (a[0] + c[0]) / 2;
+		p2[1] = (a[1] + c[1]) / 2;
+		
+		divide_triangle(a, p0, p2,m-1);
+		divide_triangle(p0, b, p1,m-1);
+		divide_triangle(p1,p2 , c,m-1);
+	}
+}
+
+void changeSize(int w, int h) {  //防止窗口变动时图形也变动
+
+	// 防止除数即高度为0
+	if (h == 0)
+		h = 1;
+
+	float ratio = 1.0* w / h;
+
+	// 单位化投影矩阵。
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+
+	// 设置视口大小为整个窗口大小
+	glViewport(0, 0, w, h);
+
+	// 设置正确的投影矩阵
+	gluPerspective(45, ratio, 1, 1000);
+	//下面是设置模型视图矩阵
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(0.0, 0.0, 5.0, 0.0, 0.0, -1.0, 0.0f, 1.0f, 0.0f);
+}
+
+void display()
+{
+	glLineWidth(3);   //线宽设置为三个像素
+	glClear(GL_COLOR_BUFFER_BIT);  //用缓存中设置的颜色来清除窗口
+	divide_triangle(v[0],v[1],v[2],n); //调用divide_triangle()函数
+	glFlush();   //将缓冲中的绘图命令实际执行
+}
+
+void myinit()
+{
+	glMatrixMode(GL_PROJECTION);    //将图形投影到显示窗口
+	glLoadIdentity();            //重置当前指定的矩阵为单位矩阵  
+	gluOrtho2D(-2.0, 2.0, -2.0, 2.0);    //定义了裁剪窗口，x,y轴的坐标范围都是-2.0~2.0
+	glMatrixMode(GL_MODELVIEW);       //设置当前矩阵为模型视图矩阵，模型视图矩阵储存了有关物体的信息。
+	glClearColor(1.0, 1.0, 1.0, 1.0);   //设置窗口背景色为白色
+	glColor3f(0.0, 0.0, 0.0);           //设置窗口前景色为黑色
+}
+
+int main(int argc, char **argv)
+{
+	n = 5;
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);  //设置初始显示模式,单缓冲窗口，RGB模式
+	glutInitWindowSize(500, 500);      //初始化显示窗口大小
+	glutCreateWindow("Sierpinski Gasket");
+	glutDisplayFunc(display);   //显示生成的图像 
+	glutReshapeFunc(changeSize);//调整窗口
+	myinit();
+	glutMainLoop();   //持续循环函数
+}
