@@ -1,0 +1,77 @@
+//Huiwen Luo
+
+#include <gl/glut.h>
+#include <cmath>
+
+#define C 3.1415
+
+GLfloat vertex[3][2] = {{-1.5,-1.0},{1.5,-1.0},{0.0,1.0}};
+int n;
+float theta = 0;
+
+void draw_line(GLfloat *p1,GLfloat *p2)
+{
+	glBegin(GL_LINES);
+	glVertex2fv(p1);
+	glVertex2fv(p2);
+	glEnd();
+}
+
+void divide_line(GLfloat *p1,GLfloat *p2,int n,float theta)
+{
+	if(n > 0)
+	{
+		GLfloat p[3][2];
+		float dis_x,dis_y,dis;
+		dis_x = p2[0] - p1[0];
+		dis_y = p2[1] - p1[1];
+		dis = sqrt(dis_x*dis_x + dis_y*dis_y) / 3;
+		//计算三点坐标
+		p[0][0] = p1[0] + dis_x / 3;
+		p[0][1] = p1[1] + dis_y / 3;
+		p[2][0] = p2[0] - dis_x / 3;
+		p[2][1] = p2[1] - dis_y / 3;
+		p[1][0] = p[0][0] + dis * cos((theta-60.0)*C/180);
+		p[1][1] = p[0][1] + dis * sin((theta-60.0)*C/180);
+
+		divide_line(p1,p[0],n-1,theta);
+		divide_line(p[0],p[1],n-1,theta-60);
+		divide_line(p[1],p[2],n-1,theta+60);
+		divide_line(p[2],p2,n-1,theta);
+	}
+	else
+		draw_line(p1,p2);
+}
+
+void display()
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+	divide_line(vertex[0],vertex[1],n,theta);
+	divide_line(vertex[1],vertex[2],n,theta+120);//将水平线以vertex[1]为轴心旋转，成为三角形的右边
+	divide_line(vertex[2],vertex[0],n,theta-120);//将水平线以vertex[1]为轴心逆时针旋转120°，成为三角形的左边
+	glFlush();
+}
+
+void myinit()
+{
+	glMatrixMode(GL_PROJECTION);    
+	glLoadIdentity();             
+	gluOrtho2D(-2.0, 2.0, -2.0, 2.0);    
+	glMatrixMode(GL_MODELVIEW);      
+	glClearColor(1.0,1.0,1.0,1.0);
+	glColor3f(1.0,0.0,0.0);
+}
+
+int main(int argc,char** argv)
+{
+	n=5;
+	glutInit(&argc,argv);
+	glutInitDisplayMode(GLUT_RGB|GLUT_SINGLE);
+	glutInitWindowPosition(100,100);
+	glutInitWindowSize(500,500);
+	glutCreateWindow("KochSnow");
+	glutDisplayFunc(display);
+	myinit();
+	glutMainLoop();
+	return 0;
+}
