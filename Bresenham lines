@@ -1,0 +1,233 @@
+
+#include <stdlib.h>
+#include <GL/glut.h>
+#include <math.h>
+
+int xm, ym, xmm, ymm;
+int first = 0;
+
+void draw_pixel(int ix, int iy)
+{
+	glPointSize(3);
+	glBegin(GL_POINTS);
+	glVertex2i(ix, iy);
+	glEnd();
+}
+
+int dx, dy;   //起点与终点之间的坐标差值
+int x,y;  
+
+void bres(int x1, int y1, int x2, int y2)
+{
+	//交换两个点的值，使得y1>y2
+	if(y2 - y1 < 0)
+	{
+		x=x2;
+		y=y2;
+		x2=x1;
+		y2=y1;
+		x1=x;
+		y1=y;
+	}
+	//斜率k，0<=k<=1
+	dx = x2 - x1;
+	dy = y2 - y1;
+	
+    if(dx > 0 && dx > dy )
+	{
+		int temp1 = 2 * dy;  
+		int temp2 = 2 * (dy - dx);  
+		int p = temp1 - dx;  //起始值p = 2dy - dx
+		//(x,y)存放较小的x坐标对应的点
+		if(x1 > x2)  
+		{  
+			x = x2;  
+			y = y2;  
+			x2 = x1;  
+		}  
+		else{  
+			x = x1;  
+			y = y1;  
+		}  
+		glClear(GL_COLOR_BUFFER_BIT);  
+		glColor3f(1.0,0.0,0.0);   
+		while(x < x2)  
+		{  
+			x++;  
+			if(p < 0)  //pk<0,则绘制点（xk+1，yk） 
+				p += temp1;  
+			else   //pk>0,则绘制点（xk+1，yk+1） 
+			{  
+				y++;  
+				p += temp2;  
+			}  
+			draw_pixel(x,y);	
+		}  
+	}
+	
+	//斜率k,k>1,此时斜率的倒数范围为(0,1),只需对调x,y,便可采用与0<k<1的同样算法
+	dy = x2 - x1;  
+	dx = y2 - y1;
+	if(dy > 0 && dy < dx)
+	{  
+		int temp1 = 2 * dy;  
+		int temp2 = 2 * (dy - dx);  
+		int p = temp1 - dx;  //起始值p = 2dy - dx
+		//(x,y)存放较小的y坐标对应的点，此时为(x1,y1)
+		x = x1;
+		y = y1;
+		glClear(GL_COLOR_BUFFER_BIT);  
+		glColor3f(1.0,0.0,0.0); 
+		while(y < y2)  
+		{  
+			y++;  
+			if(p < 0)  //pk<0,则绘制点（xk，yk+1） 
+				p += temp1;  
+			else   //pk>0,则绘制点（xk+1，yk+1） 
+			{  
+				x++;  
+				p += temp2;  
+			}  
+			draw_pixel(x,y);	
+		}  
+	}
+	
+	//斜率k，-1<=k<=0,只需对调x1,x2的值,便可采用与0<k<1的同样算法
+    dx = x1 - x2;  
+	dy = y2 - y1;
+	if(dx > 0 && dx > dy)
+	{	
+		int temp1 = 2 * dy;  
+		int temp2 = 2 * (dy - dx);  
+		int p = temp1 - dx;  //起始值p = 2dy - dx
+		//(x,y)存放较小的x坐标对应的点，此时为(x2,y2)
+		x = x2;
+		y = y2;
+		glClear(GL_COLOR_BUFFER_BIT);  
+		glColor3f(1.0,0.0,0.0);   
+		while(x < x1)  
+		{  
+			x++;  
+			if(p < 0)  //pk<0,则绘制点（xk+1，yk） 
+				p += temp1;  
+			else   //pk>0,则绘制点（xk+1，yk-1） 
+			{  
+				y--;  
+				p += temp2;  
+			}  
+			draw_pixel(x,y);	
+		}  
+	}
+	
+	//斜率k,k<-1,此时斜率的倒数范围为(-1,0),只需对调x,y,便可采用与-1<=k<=0的同样算法
+	dy = x1 - x2;  
+	dx = y2 - y1;
+	if(dy > 0 && dy < dx)
+	{  
+		
+		int temp1 = 2 * dy;  
+		int temp2 = 2 * (dy - dx);  
+		int p = temp1 - dx;  //起始值p = 2dy - dx
+		//(x,y)存放较小的y坐标对应的点，此时为(x1,y1)
+		x = x1;
+		y = y1;
+		glClear(GL_COLOR_BUFFER_BIT);  
+		glColor3f(1.0,0.0,0.0); 
+		while(y < y2)  
+		{  
+			y++;  
+			if(p < 0)  //pk<0,则绘制点（xk，yk+1） 
+				p += temp1;  
+			else   //pk>0,则绘制点（xk-1，yk+1） 
+			{  
+				x--;  
+				p += temp2;  
+			}  
+			draw_pixel(x,y);	
+		}  
+	}
+    glutPostRedisplay();  
+}
+
+
+void mouse(int btn, int state, int x, int y)
+{
+	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+	{
+		xm = x;
+		ym = (700 - y);
+		glColor3f(1.0, 1.0, 1.0);
+		first = 0;
+	}
+	if (btn == GLUT_LEFT_BUTTON && state == GLUT_UP)
+	{
+		glLogicOp(GL_XOR);
+		bres(xm, ym, xmm, ymm);
+		glFlush();
+		
+		xmm = x;
+		ymm = (700 - y);
+		glColor3f(0.0, 0.0, 1.0);
+		bres(xm, ym, xmm, ymm);
+		glFlush();
+		glLogicOp(GL_COPY);
+	}
+}
+
+void move(int x, int y)
+{
+	if (first == 1)
+	{
+		glLogicOp(GL_XOR);
+		bres(xm, ym, xmm, ymm);
+		glFlush();
+		
+	}
+	
+	xmm = x;
+	ymm = (700 - y);
+	glColor3f(0, 1.0, 0);
+	bres(xm, ym, xmm, ymm);
+	glFlush();
+	first = 1;
+}
+
+void display()
+{
+	bres(xm, ym, xmm, ymm);
+	glFlush();
+}
+
+
+void init()
+{
+	
+	/* 设置背景色是黑色 */
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
+	
+	/*开启逻辑运算功能！！！*/
+	glEnable(GL_COLOR_LOGIC_OP);
+	
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(0, 700, 0, 700);
+}
+
+void main(int argc, char** argv)
+{
+	glutInit(&argc, argv);
+	glutInitWindowSize(700, 700);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("Line");
+	
+	init();
+	glutDisplayFunc(display);
+	
+	/*注册需要的两个鼠标回调函数*/
+	glutMouseFunc(mouse);
+	glutMotionFunc(move);
+	glutMainLoop();
+	
+}
+
