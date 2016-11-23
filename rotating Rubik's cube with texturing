@@ -1,0 +1,280 @@
+// tex_cube.cpp : 定义控制台应用程序的入口点。
+//
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <GL/glut.h>
+#include <GL/glaux.h>
+
+#define M_PI 3.14159
+#define bool int
+#define false 0
+#define true 1
+
+int winWidth=500, winHeight=500;
+bool redrawContinue = false;
+float lastPos[3] = { 0.0F, 0.0F, 0.0F };
+float angle = 0.0;
+GLfloat axis[3] = { 0.0, 0.0, 0.1 }; 
+int curx, cury;
+int startX, startY;
+
+GLfloat vertices[][3] = { { -1.0, -1.0, -1.0 }, { 1.0, -1.0, -1.0 },
+{ 1.0, 1.0, -1.0 }, { -1.0, 1.0, -1.0 }, { -1.0, -1.0, 1.0 },
+{ 1.0, -1.0, 1.0 }, { 1.0, 1.0, 1.0 }, { -1.0, 1.0, 1.0 } };
+GLuint  texture[1];
+GLfloat alpha = 0.5f;
+
+AUX_RGBImageRec *LoadBMP(char *Filename)    // 根据位图文件的名称进行加载
+{
+	FILE *File=NULL;        // 文件指针	
+	if (!Filename)         // 如果没有指定位图文件名称就返回NULL
+	{
+		return NULL;        
+	}
+	File=fopen(Filename,"r");       // 根据指定的位图文件名称，打开该位图文件	
+	if (File)           // 如果位图文件存在
+	{
+		fclose(File);         // 因为只是需要判断问题是否存在，而不需要对位图文件进行写操作，所以关闭位图文件
+		return auxDIBImageLoad(Filename);   // 其实，只需要一个真正存在的位图文件的名称，实现加载位图文件，并返回一个指针
+	}	
+	return NULL;          // 位图文件加载失败就返回NULL
+}
+
+int LoadGLTextures()         // 根据加载的位图创建纹理
+{
+	int Status=false;         // 指示纹理创建是否成功的标志
+	AUX_RGBImageRec *TextureImage[1];     // 创建一个纹理图像数组，这里指定数组大小为6
+	
+	memset(TextureImage,0,sizeof(void *)*1);          // 初始化纹理图像数组，为其分配内存
+	if (TextureImage[0]=LoadBMP("TX.bmp"))// 加载位图i成功，修改状态标志变量Status为TRUE
+	{
+		Status=true;        
+		
+		glGenTextures(1, &texture[0]);     // 为位图创建纹理
+		glBindTexture(GL_TEXTURE_2D, texture[0]);// 将生成的纹理的名称绑定到指定的纹理上
+		glTexImage2D(GL_TEXTURE_2D, 0, 3, TextureImage[0]->sizeX, TextureImage[0]->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, TextureImage[0]->data);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+	}	
+	if (TextureImage[0])         // 释放位图数组占用的内存空间
+	{
+		if (TextureImage[0]->data)      
+		{
+			free(TextureImage[0]->data);   
+		}
+		free(TextureImage[0]);       
+	}
+	
+	return Status;          // 创建纹理并加载，返回成功或者失败的标志Status
+}
+
+void colorcube()
+{
+	glBegin(GL_QUADS);
+	//前面
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(vertices[5]); // 纹理和四边形的右下
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(vertices[6]); // 纹理和四边形的右上
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(vertices[7]); // 纹理和四边形的左上
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(vertices[4]); // 纹理和四边形的左下
+	// 后面
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(vertices[0]); // 纹理和四边形的左下
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(vertices[1]); // 纹理和四边形的右下
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(vertices[2]); // 纹理和四边形的右上
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(vertices[3]); // 纹理和四边形的左上
+	// 左面
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(vertices[3]); // 纹理和四边形的左上
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(vertices[0]); // 纹理和四边形的左下
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(vertices[4]); // 纹理和四边形的右下
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(vertices[7]); // 纹理和四边形的右上
+	// 右面
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(vertices[2]); // 纹理和四边形的右上
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(vertices[6]); // 纹理和四边形的左上
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(vertices[5]); // 纹理和四边形的左下
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(vertices[1]); // 纹理和四边形的右下
+	// 顶面	
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(vertices[6]); // 纹理和四边形的右下
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(vertices[2]); // 纹理和四边形的右上
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(vertices[3]); // 纹理和四边形的左上
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(vertices[7]); // 纹理和四边形的左下
+	// 底面
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(vertices[5]); // 纹理和四边形的左下
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(vertices[4]); // 纹理和四边形的右下
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(vertices[0]); // 纹理和四边形的右上
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(vertices[1]); // 纹理和四边形的左上
+	glEnd();
+	glFlush();
+}
+
+/*----------------------------------------------------------------------*/
+/*** These functions implement a simple trackball-like motion control.
+-------------------------------------------------------------------------*/
+void trackball_ptov(int x, int y, int width, int height, float v[3])
+{
+	float d, a;
+	
+	v[0] = (2.0F*x - width) / width;
+	v[1] = (height - 2.0F*y) / height;
+	d = (float)sqrt(v[0] * v[0] + v[1] * v[1]);
+	v[2] = (float)cos((M_PI / 2.0F) * ((d < 1.0F) ? d : 1.0F));
+	a = 1.0F / (float)sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+	v[0] *= a;
+	v[1] *= a;
+	v[2] *= a;
+}
+
+void mouseMotion(int x, int y)
+{
+	float curPos[3], dx, dy, dz;
+	trackball_ptov(x, y, winWidth, winHeight, curPos);
+	
+	dx = curPos[0] - lastPos[0];
+	dy = curPos[1] - lastPos[1];
+	dz = curPos[2] - lastPos[2];
+	
+	if (dx || dy || dz) {
+		angle = 90.0F * sqrt(dx*dx + dy*dy + dz*dz);
+		
+		axis[0] = lastPos[1] * curPos[2] - lastPos[2] * curPos[1];
+		axis[1] = lastPos[2] * curPos[0] - lastPos[0] * curPos[2];
+		axis[2] = lastPos[0] * curPos[1] - lastPos[1] * curPos[0];
+		
+		lastPos[0] = curPos[0];
+		lastPos[1] = curPos[1];
+		lastPos[2] = curPos[2];
+	}
+	glutPostRedisplay();
+}
+
+void startMotion(int x, int y)
+{
+	redrawContinue = false;
+	startX = x; startY = y;
+	curx = x; cury = y;
+	trackball_ptov(x, y, winWidth, winHeight, lastPos);
+}
+
+void stopMotion(int x, int y)
+{
+	redrawContinue = true;
+}
+/*************************旋转立方体*************************/
+float  CompositeTransMatrix[4][4] = {{ 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0, 0.0 }, { 0.0, 0.0, 0.0, 1.0 } };
+float *p_CompositeTransMatrix = *CompositeTransMatrix;
+
+float Mlookup[4][4] = {{ 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 }, { 0.0, 0.0, 1.0, 0.0 }, { 0.0, 0.0, 0.0, 1.0 } };;
+float *p_Mlookup = *Mlookup;
+
+void display()
+{
+	glColor4f(1.0f, 1.0f, 1.0f, alpha);
+	glEnable(GL_BLEND);  //启用混合
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_MODELVIEW);	
+	glLoadIdentity();
+	gluLookAt(0, 0, 5, 0, 0, 0, 0, 1, 0);
+	glGetFloatv(GL_MODELVIEW_MATRIX, p_Mlookup);
+	
+	/*多个旋转组合，理论上左乘顺序，而CTM实现是右乘属性。
+	这里用栈操作实现不了顺序，只能靠自己编程设置矩阵保存上次旋转后的组合矩阵，再CTM右乘它
+	公式为：CTM(i)=I*R(i)*M(i-1); M(i)=CTM(i）;初始：CTM(0)=I, M(0)=I*/
+	glLoadIdentity();
+	glRotatef(angle, axis[0], axis[1], axis[2]);
+	glMultMatrixf(p_CompositeTransMatrix);
+	glGetFloatv(GL_MODELVIEW_MATRIX, p_CompositeTransMatrix);
+	glLoadMatrixf(p_Mlookup);
+	glMultMatrixf(p_CompositeTransMatrix);	
+
+	glBindTexture(GL_TEXTURE_2D, texture[0]);
+	colorcube();
+	glutSwapBuffers();
+}
+
+void spinCube()
+{
+	if (redrawContinue == true)
+	{
+		angle = 0.1;
+		glutPostRedisplay();
+	}
+}
+
+void myMouse(int Botton, int State, int MouseX, int MouseY)
+{
+	if (Botton == GLUT_LEFT_BUTTON)
+	{
+		switch (State)
+		{
+		case GLUT_DOWN:
+			startMotion(MouseX, MouseY);
+			break;
+		case GLUT_UP:
+			stopMotion(MouseX, MouseY);
+			break;
+		}
+	}		
+}
+
+void myReshape(int w, int h)
+{
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	if (w <= h)
+		glOrtho(-2.0, 2.0, -2.0 * (GLfloat)h / (GLfloat)w,
+		2.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
+	else
+		glOrtho(-2.0 * (GLfloat)w / (GLfloat)h,
+		2.0 * (GLfloat)w / (GLfloat)h, -2.0, 2.0, -10.0, 10.0);
+	glMatrixMode(GL_MODELVIEW);
+}
+
+void key(unsigned char k, int x, int y)
+{
+	if (k == '1') glutIdleFunc(spinCube);
+	if (k == '2') glutIdleFunc(NULL);
+	if (k == 'q') exit(0);
+    //键盘+，-控制alpha通道
+	if (k == '+') 
+	{
+		alpha+=0.1f;
+		if (alpha > 1.0) 
+			alpha =1.0f;
+		glutPostRedisplay();
+	}
+	if (k == '-') 
+	{
+		alpha-=0.1f;
+		if (alpha < 0.0) 
+			alpha =0.0f;
+		glutPostRedisplay();
+	}
+}
+
+void myinit(void)
+{
+	glClearColor(0.0, 0.0, 0.0, 0.0);  //清理颜色，为黑色，（也可认为是背景颜色）	
+	LoadGLTextures();            //载入纹理贴图
+	glEnable(GL_TEXTURE_2D);//启用纹理2D	
+}
+
+void main(int argc, char **argv)
+{
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(winWidth, winHeight);
+	glutCreateWindow("Texture colorcube");
+	myinit();
+	glutReshapeFunc(myReshape);
+	glutDisplayFunc(display);
+	glutIdleFunc(spinCube);
+	glutMouseFunc(myMouse);
+	glutMotionFunc(mouseMotion);
+	glEnable(GL_DEPTH_TEST);
+	glutKeyboardFunc(key);
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glutMainLoop();
+}
