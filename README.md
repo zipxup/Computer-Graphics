@@ -1,4 +1,4 @@
-# Computer-Graphics
+# Computer-Graphics-undergraduate
 1. gasket
 2. Koch snowflake
 3. 3-d gasket with projection
